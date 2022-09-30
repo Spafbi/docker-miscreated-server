@@ -56,6 +56,19 @@ runString="Bin64_dedicated/MiscreatedServer.exe -sv_port=${sv_port} -mis_gameser
 runString=$(echo $runString|sed 's/"/\\"/g')
 echo RUNCMD=\"$runString\" >> ${gameServerFile}
 
+# Update file permisssions
+if [ $noGamesMatch -eq 1 ]; then
+	# Yes, I know these file permissions are wide open. Don't let anyone you don't trust SSH into your system - they could bork your Miscreated server.
+	# Create a "games" user and group with UID=5 and GID=60 if you wish to have tigher permissions.
+	sudo find ${localServerDir} -type d -exec chmod 777 {} \;
+	sudo find ${localServerDir} -type f -exec chmod 666 {} \;
+else
+	# These are much more reasonable permissions. Add your user to the "games" group if you want read/write permissions on the files, otherwise you'll just have read only.
+	sudo find ${localServerDir} -type d -exec chmod 775 {} \;
+	sudo find ${localServerDir} -type f -exec chmod 664 {} \;
+	sudo chown games: -R ${localServerDir}
+fi
+
 # Fire up the Docker instance
 dockerGameServerDir=/usr/games/Steam/steamapps/common/MiscreatedServer
 docker run -d --restart=always --network=host --name=${container_name} \
