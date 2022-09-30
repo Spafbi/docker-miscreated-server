@@ -40,7 +40,7 @@ else
 	echo http_password=$randomPassword|sudo tee ${localServerDir}/hosting.cfg
 	echo log_Verbosity=0|sudo tee -a ${localServerDir}/hosting.cfg
 	echo log_WriteToFileVerbosity=0|sudo tee -a ${localServerDir}/hosting.cfg
-	echo max_uptime=12|sudo tee -a ${localServerDir}/hosting.cfg
+	echo sv_maxuptime=12|sudo tee -a ${localServerDir}/hosting.cfg
 	echo sv_servername=${sv_servername}|sudo tee -a ${localServerDir}/hosting.cfg
 fi
 sudo touch ${localServerDir}/miscreated.db
