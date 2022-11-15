@@ -28,7 +28,7 @@ else
 fi
 
 # Create the local directories - FIXME: Let's put some logic here to better handle this
-sudo mkdir -p ${localServerDir} ${localServerDir}/DatabaseBackups ${localServerDir}/logbackups ${localServerDir}/logs
+sudo mkdir -p ${localServerDir} ${localServerDir}/DatabaseBackups ${localServerDir}/DatabaseBackups ${localServerDir}/logbackups ${localServerDir}/logs
 if [ $noGamesMatch -eq 1 ]; then sudo find ${localServerDir} -type d -exec chmod 777 {} \; ; fi
 
 # Touch and/or create required files - this will update the file timestamps, and create the files if missing, but no other changes will occur.
