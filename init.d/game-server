@@ -18,7 +18,8 @@
 
 SCRIPT=`basename $0`
 BASEDIR=/usr/games
-GAMEDIR=$BASEDIR/Steam/steamapps/common/*/
+PROGDIR=$BASEDIR/.wine/drive_c/Program\ Files\ \(x86\)
+GAMEDIR=$PROGDIR/Steam/steamapps/common
 USER=games
 
 . $BASEDIR/.game-server
@@ -31,7 +32,7 @@ export WINEDEBUG=-all
 
 start() {
   log_daemon_msg "Starting game instance" "$DAEMON"
-  start-stop-daemon --start --quiet --background --chuid $USER --exec $DAEMON -- $GAMEDIR/$RUNCMD
+  start-stop-daemon --start --quiet --background --chuid $USER --exec $DAEMON -- "$GAMEDIR"/*/$RUNCMD
   log_end_msg $?
 }
 

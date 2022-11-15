@@ -1,12 +1,11 @@
 #!/bin/sh
 
-# First start generates .wine sources which result
-# in a broken DBUS connection (winsock failure)
+# Start services
 service game-server start
 
-# .. so we restart the service and game server.
-service dbus restart
-service game-server restart
+if [ "$RDP_SERVER" = "yes" ]; then
+  service xrdp start
+fi
 
 # Keep-alive
 sleep infinity

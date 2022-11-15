@@ -32,6 +32,8 @@ Unless the game you are attempting to run was purchased on the [Steam](https://s
 | APPID         | Steam application ID    |
 | RUNCMD        | Commands to run in the app directory. |
 | HEADLESS      | yes &#124; no (default: yes) |
+| RDP_SERVER    | yes &#124; no (default: no)  |
+| RDP_PASSWD    | System account Password (default: `games`) |
 
 ## Launching in Remote-Containers
 
@@ -54,20 +56,39 @@ In cases where you have an existing game set-up (e.g. configuration, database, w
 The most likely culprit to the "I cannot find my server.." issue is one of the following:
 
 1. Your router NAT has limited support for [UPnP &#40;Universal Plug and Play&#41;](https://en.wikipedia.org/wiki/Universal_Plug_and_Play) which results in game loopback requests being denied.  To resolve this you must manually configure [port range forwarding](https://en.wikipedia.org/wiki/Port_forwarding) in your router to mirror the TCP/UDP ports exposed by the game server.  This will ensure routing to your game server occurs within the network.
-2. Your game server binds to the server _internal IP_ vs router _external (public)_ address.  To resolve this you must add an IP alias to your server network device (see below).  Once complete, you must configure the game to launch using that same address thereby ensuring the correct IP is broadcasted to the game network.
+2. Your game server binds to the server _internal IP_ vs router _external (public)_ address.  To resolve this you must add an IP alias to your server network device (see below).  Once complete, you _*may need to configure the game_ to launch using that same address thereby ensuring the correct IP is broadcasted to the game network.
+
+(*) Entirely dependent on your network set-up (e.g. corporate vs home) and in most cases is not required.
 
 ### Adding an IP alias (spoofing your external address)
 
     $ ip a add <ip-address>/24 dev <interface-name>
 
-## Game server boot issues
+## Connecting with an RDP client
 
-There are games that specifically rely on an integrated version of [Steam UGC](https://partner.steamgames.com/doc/api/ISteamUGC) in order to load [workshop content](https://steamcommunity.com/workshop) (e.g. mods) during the game initialization phase.  Since this package uses the Linux-based variant of the Steam client (`steamcmd.sh`) there are cases where those type of operations fail resulting in a hung game server.  If you require Steam workshops, I'm currently evaluating a Windows specific release (`steamcmd.exe`) of this package to resolve this issue that can be [found here](https://github.com/nuxy/docker-steamcmd-wine/tree/develop-windows).
+If the container was started with `RDP_SERVER=yes` you can make a remote desktop connection using a client-side application supported by your operating system.
+
+| Application | Operating System |
+|-------------|------------------|
+| [Microsoft Remote Desktop](https://play.google.com/store/apps/details?id=com.microsoft.rdc.androidx) | Android |
+| [Microsoft Remote Desktop](https://apps.apple.com/us/app/microsoft-remote-desktop/id1295203466) | OSX, iOS |
+| [Microsoft Remote Desktop](https://apps.microsoft.com/store/detail/microsoft-remote-desktop/9WZDNCRFJ3PS) | Windows |
+| [Reminna Remote Desktop Client](https://remmina.org/remmina-rdp) | Linux |
+
+### Login credentials
+
+Unless `RDP_PASSWD` has been defined, you can login to the server using the following account information:
+
+```txt
+Username: games
+Password: games
+```
 
 ## References
 
 - [Database of everything on Steam](https://steamdb.info)
 - [Runtime options with Memory, CPUs, and GPUs](https://docs.docker.com/config/containers/resource_constraints)
+- [Required Ports for Steam](https://help.steampowered.com/en/faqs/view/2EA8-4D75-DA21-31EB)
 
 ## Contributions
 
