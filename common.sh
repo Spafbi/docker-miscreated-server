@@ -74,6 +74,7 @@ dockerGameServerDir=/usr/games/Steam/steamapps/common/MiscreatedServer
 docker run -d --restart=always --network=host --name=${container_name} \
 	-v ${localServerDir}/blacklist.xml:${dockerGameServerDir}/blacklist.xml \
 	-v ${localServerDir}/DatabaseBackups:${dockerGameServerDir}/DatabaseBackups \
+	-v ${localServerDir}/DockerScripts:${dockerGameServerDir}/DockerScripts \
 	-v ${localServerDir}/.game-server:/usr/games/.game-server \
 	-v ${localServerDir}/hosting.cfg:${dockerGameServerDir}/hosting.cfg \
 	-v ${localServerDir}/logbackups:${dockerGameServerDir}/logbackups \
