@@ -28,7 +28,7 @@ else
 fi
 
 # Create the local directories - FIXME: Let's put some logic here to better handle this
-sudo mkdir -p ${localServerDir} ${localServerDir}/DatabaseBackups ${localServerDir}/logbackups ${localServerDir}/logs
+sudo mkdir -p ${localServerDir} ${localServerDir}/DatabaseBackups ${localServerDir}/logbackups ${localServerDir}/logs ${localServerDir}/mFramework ${localServerDir}/Mods_Config
 if [ $noGamesMatch -eq 1 ]; then sudo find ${localServerDir} -type d -exec chmod 777 {} \; ; fi
 
 # Touch and/or create required files - this will update the file timestamps, and create the files if missing, but no other changes will occur.
@@ -81,4 +81,6 @@ docker run -d --restart=always --network=host --name=${container_name} \
 	-v ${localServerDir}/miscreated.db:${dockerGameServerDir}/miscreated.db \
 	-v ${localServerDir}/reservations.xml:${dockerGameServerDir}/reservations.xml \
 	-v ${localServerDir}/whitelist.xml:${dockerGameServerDir}/whitelist.xml \
+	-v ${localServerDir}/mFramework:${dockerGameServerDir}/mFramework \
+	-v ${localServerDir}/Mods_Config:${dockerGameServerDir}/Mods_Config \
 	${image_name}
