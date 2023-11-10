@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+XVFB_RESOLUTION=${XVFB_RESOLUTION:320x240x8}
+XVFB_SCREEN=${XVFB_SCREEN:0}
+XVFB_SERVER=${XVFB_SERVER:95}
+RDP_SERVER=no
+
+nohup /usr/bin/Xvfb "${XVFB_SERVER}" -screen "${XVFB_SCREEN}" "${XVFB_RESOLUTION}" >/dev/null 2>&1 &
+
+exec "$@"

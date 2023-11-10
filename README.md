@@ -1,90 +1,57 @@
-# docker-steamcmd-wine
+# Miscreated Docker Server
+The new version of the Miscreated Docker server scripting. Enjoy!
 
-Run a [Steam](https://store.steampowered.com) powered Windows game server in Docker.
+# Requirements
+* Linux
+* Docker
+* bash
 
-## Dependencies
+This was tested on Ubuntu 22.04 LTS. Your mileage may vary when using other versions of Linux.
 
-- [Visual Studio Code](https://code.visualstudio.com/download) (optional)
-- [Docker](https://docs.docker.com/get-docker)
+# Using this scripting
 
-### VS Code extensions
+## Build the server image
+```bash
+bash ./build-image.sh
+```
+This only needs to be performed one time per host. This one image will be used by all of the Docker Miscreated servers which are started using this scripting.
 
-- [Remote-Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+## Launch the server
+```bash
+bash ./launch-server.sh
+```
+That will launch a Miscreated server container named "miscreated_server" and the server will listen on 0.0.0.0:64090-64093/udp and 0.0.0.0:64094/tcp. Predefined values for some `hosting.cfg` settings are created when the script is executed; see the *_Changing defaults_* section below.
 
-## Manually starting the container
+### Defining IP, ports, and container names
+You can also specify the following arguments to the above `launch-server.sh` command:
+```bash
+bash ./launch-server.sh -c my_miscreated_server -i 192.168.1.2 -p 30000
+```
+`-c` is the container name of the server.
+`-i` is the local IP address you want the server's ports to be bound.
+`-p` is the starting port for the server. `30000` will use ports `30000-30003/udp` and `30004/tcp`
 
-Unless the game you are attempting to run was purchased on the [Steam](https://store.steampowered.com) marketplace **authentication should not be necessary** so you can omit the [Game configuration arguments](#game-configuration-arguments) in the `docker build` command below.  In cases you do need to authenticate, on first build attempt a [Steam Guard](https://help.steampowered.com/en/faqs/view/06B0-26E6-2CF8-254C) code is generated which is _sent to you by either e-mail or SMS_.  Due to this, you must update the command below to include the `GUARDCODE` value and re-run the build process _within 30 seconds_ of receiving the message.
+If you attempt to launch an instance and use the same container name as another Docker container, the already running container will be stopped ***and*** removed. A ***working*** directory based on an alphanumeric version of the defined container name is created in the script directory and will contain a set of default files for the server. Because this directory is based on the container name, this allows you to use the script for launching multiple Miscreated servers, at least as long as you use unique container names for each container instance. It should be noted that *any files and/or directories you create in the working directory will also be automatically mapped to the container*.
 
-    $ docker build -t steamcmd . --build-arg USERNAME=<steam-username> --build-arg PASSWORD=<steam-password> --build-arg GUARDCODE=<steam-guard-code> --build-arg APPID=<steam-appid> --build-arg RUNCMD=<command>
-    $ docker run -d --network host steamcmd
+#### Working directory examples
+If a container name **is not** defined by use of the `-c` option, the container will be named `miscreated_server` and the *working* directory will be created as `miscreatedserver`. If a container name **is** defined by use of the `-c` option, and using `miscreated_pve` as the defined container name for this example, the *working* directory in this case will be created as `miscreatedpve`.
 
-### Accessing the container
+## Stopping the server
+You can stop the container manually by executing `docker stop <container_name>` like so: `docker stop miscreated_server`. This *does not* gracefully stop the server.
 
-    $ docker exec -it <container-id> /bin/bash
+To gracefully stop a Docker Miscreated server, edit the `<working>/env` file and change `RUN_SERVER=1` to `RUN_SERVER=0`, then send a shutdown command to the server using RCON. Once the server has shut down you can execute the docker stop command without risk of data loss.
 
-### Game configuration arguments
+## Restarting the server
+The Docker containers created by this script should automatically restart if the host is restarted for any reason. If you manually stop the Miscreated server using the `docker stop <container_name>` command, you may start it again by executing `docker start <container_name>`. If you have need to force restart a container you may do so by executing `docker restart <container_name>`
 
-| `--build-arg` | Description             |
-|---------------|-------------------------|
-| USERNAME      | Steam account Username (optional) |
-| PASSWORD      | Steam account Password (optional) |
-| GUARDCODE     | [Steam Guard](https://help.steampowered.com/en/faqs/view/06B0-26E6-2CF8-254C) code (optional) |
-| APPID         | Steam application ID    |
-| RUNCMD        | Commands to run in the app directory. |
-| HEADLESS      | yes &#124; no (default: yes) |
+## Changing defaults
+After the initial launch of the server you can then edit defaults which are set in `<working>/env` and `<working>/hosting.cfg`. Again, any files and/or directories you create in the working directory will also be automatically mapped to the container. Be careful to not put files or directories in here which may collide with a typical Miscreated installation as the working directory files will take precedence. It is suggested the container be restarted (`docker restart <container_name>`) after making changes to these files.
 
-## Launching in Remote-Containers
+## Interacting with the container
+You can connect to the container interactively by executing `docker exec -it <container_name> /bin/bash`. This will give you a bash prompt where you will be able to watch the server.log file or do any other poking around you want to do. You can use view (`view server.log`) to see a snapshot of the file's contents when you open it. You can also use tail (`tail -n100 -f server.log`) to view the last 100 lines, plus any new lines which get appended. Anything in the container which was not in the working directory prior to the container being starting will be removed when the container is restarted.
 
-In the VS Code _Command Palette_ choose "Open Folder in Container" which will launch the server in a Docker container allowing for realtime development and testing.
+## Backups
+Once you stop a server, making a backup of the working directory will contain everything needed to restore or move the Miscreated server to a new host if the need arises.
 
-By default, a [Miscreated Dedicated Server](https://steamdb.info/app/302200) will be launched.  To change the game edit the VS Code [`devcontainer.json`](https://github.com/nuxy/docker-steamcmd-wine/blob/develop/.devcontainer/devcontainer.json) and rebuild the Docker container.
-
-## Managing the game server
-
-The following command can be executed within the Docker container:
-
-    $ service game-server {start|stop|restart}
-
-## Overriding game sources
-
-In cases where you have an existing game set-up (e.g. configuration, database, workshops) you can synchronize these items during the game installation process by adding them to the `/files` directory.  Mirroring that of the existing game directory, files that already exist will be overwritten.
-
-## Networking workarounds
-
-The most likely culprit to the "I cannot find my server.." issue is one of the following:
-
-1. Your router NAT has limited support for [UPnP &#40;Universal Plug and Play&#41;](https://en.wikipedia.org/wiki/Universal_Plug_and_Play) which results in game loopback requests being denied.  To resolve this you must manually configure [port range forwarding](https://en.wikipedia.org/wiki/Port_forwarding) in your router to mirror the TCP/UDP ports exposed by the game server.  This will ensure routing to your game server occurs within the network.
-2. Your game server binds to the server _internal IP_ vs router _external (public)_ address.  To resolve this you must add an IP alias to your server network device (see below).  Once complete, you must configure the game to launch using that same address thereby ensuring the correct IP is broadcasted to the game network.
-
-### Adding an IP alias (spoofing your external address)
-
-    $ ip a add <ip-address>/24 dev <interface-name>
-
-## Game server boot issues
-
-There are games that specifically rely on an integrated version of [Steam UGC](https://partner.steamgames.com/doc/api/ISteamUGC) in order to load [workshop content](https://steamcommunity.com/workshop) (e.g. mods) during the game initialization phase.  Since this package uses the Linux-based variant of the Steam client (`steamcmd.sh`) there are cases where those type of operations fail resulting in a hung game server.  If you require Steam workshops, I'm currently evaluating a Windows specific release (`steamcmd.exe`) of this package to resolve this issue that can be [found here](https://github.com/nuxy/docker-steamcmd-wine/tree/develop-windows).
-
-## References
-
-- [Database of everything on Steam](https://steamdb.info)
-- [Runtime options with Memory, CPUs, and GPUs](https://docs.docker.com/config/containers/resource_constraints)
-
-## Contributions
-
-If you fix a bug, or have a code you want to contribute, please send a pull-request with your changes.
-
-## Versioning
-
-This package is maintained under the [Semantic Versioning](https://semver.org) guidelines.
-
-## License and Warranty
-
-This package is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose.
-
-_docker-steamcmd-wine_ is provided under the terms of the [MIT license](http://www.opensource.org/licenses/mit-license.php)
-
-[Steam](https://store.steampowered.com) is a registered trademark of Valve Corporation.
-
-## Author
-
-[Marc S. Brooks](https://github.com/nuxy)
+# Eratta
+The base Docker container image used to build this image has the ability to use RDP as an interactive desktop. As such, the RDP port (3389) is exposed (you'll see it listed in `docker ps`), but this scripting does not publish this port as it cannot be used with background processes such as the Miscreated server.

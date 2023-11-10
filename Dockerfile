@@ -1,39 +1,31 @@
-FROM scottyhardy/docker-wine
+FROM scottyhardy/docker-wine:latest
 
-ARG USERNAME=anonymous
-ARG PASSWORD=
-ARG GUARDCODE=
-ARG APPID=
-ARG RUNCMD=
-
-# Enable console (headless mode)
-ARG HEADLESS=yes
-
-# Suppress non-blocking warnings.
-ENV DBUS_FATAL_WARNINGS 0
-
-# Override base image variables.
-ENV RUN_AS_ROOT yes
-
-WORKDIR /usr/games
-
-RUN chown games:games /usr/games
-
-USER games
-
-# Install the Steam application.
-RUN wget -qO- https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar xvz
-RUN ./steamcmd.sh +@sSteamCmdForcePlatformType windows +login "$USERNAME" "$PASSWORD" "$GUARDCODE" +app_update "$APPID" +quit
-
-USER root
-
-COPY files /usr/games/files
-RUN sudo -u games cp -rf files/* /usr/games/Steam/steamapps/common/*/ && rm -rf files
-
-COPY init.d/game-server /etc/init.d/game-server
-COPY launch.sh /usr/games/launch.sh
-
-# Install LSB init and RC scripts.
-RUN update-rc.d game-server defaults && echo "HEADLESS=$HEADLESS\nRUNCMD='$RUNCMD'" > .game-server
-
-CMD /usr/games/launch.sh
+RUN dpkg --add-architecture i386
+RUN apt update
+RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get install -y --no-install-recommends tzdata
+RUN dpkg-reconfigure --frontend noninteractive tzdata
+RUN apt install -y wget sudo
+RUN echo steam steam/question select "I AGREE" | sudo debconf-set-selections
+RUN echo steam steam/license note '' | sudo debconf-set-selections
+RUN apt install -y steamcmd lib32gcc-s1
+RUN apt dist-upgrade -y
+RUN apt upgrade -y
+RUN apt autoremove -y
+RUN apt install --install-recommends steamcmd -y
+RUN useradd -m steam
+RUN mkdir -p /opt/miscreated
+RUN chown steam: /opt/miscreated
+COPY src/entrypoint /usr/bin/entrypoint
+RUN chown root: /usr/bin/entrypoint
+RUN chmod 755 /usr/bin/entrypoint
+USER steam
+RUN mkdir -p /home/steam/.steam
+ENV WINEDLLOVERRIDES="mscoree,mshtml="
+RUN wineboot -u
+RUN /usr/games/steamcmd +@sSteamCmdForcePlatformType windows +force_install_dir /opt/miscreated +login anonymous +app_update 302200 validate +quit
+WORKDIR /opt/miscreated
+EXPOSE 64090-64093/udp
+EXPOSE 64094/tcp
+ENTRYPOINT ["/usr/bin/entrypoint"]
