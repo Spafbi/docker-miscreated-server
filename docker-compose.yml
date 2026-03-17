@@ -3,8 +3,8 @@ services:
     image: ${IMAGE:-miscreated-server}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "${BASE_PORT:-64090}+4:${BASE_PORT:-64090}+4/tcp"
-      - "${BASE_PORT:-64090}-${BASE_PORT:-64090}+3:${BASE_PORT:-64090}-${BASE_PORT:-64090}+3/udp"
+      - "${RCON_PORT:-64094}:${RCON_PORT:-64094}"
+      - "${BASE_PORT:-64090}-${END_UDP_PORT:-64093}:${BASE_PORT:-64090}-${END_UDP_PORT:-64093}/udp"
     environment:
       - BASE_PORT=${BASE_PORT:-64090}
       - GRANT_ALL_GUIDES=${GRANT_ALL_GUIDES:-0}
