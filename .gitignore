@@ -1,0 +1,11 @@
+.continue/*
+DatabaseBackups/*
+log*/*
+
+.env
+banned.xml
+hosting.cfg
+miscreated.db
+reservations.xml
+server.log
+whitelist.xml

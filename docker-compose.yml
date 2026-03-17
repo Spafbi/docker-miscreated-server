@@ -1,0 +1,25 @@
+services:
+  miscreated:
+    image: ${IMAGE:-miscreated-server}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${RCON_PORT:-64094}:${RCON_PORT:-64094}"
+      - "${BASE_PORT:-64090}-${END_UDP_PORT:-64093}:${BASE_PORT:-64090}-${END_UDP_PORT:-64093}/udp"
+    environment:
+      - BASE_PORT=${BASE_PORT:-64090}
+      - GRANT_ALL_GUIDES=${GRANT_ALL_GUIDES:-0}
+      - MAP=${MAP:-islands}
+      - MAX_PLAYERS=${MAX_PLAYERS:-36}
+      - MIS_GAMESERVERID=${MIS_GAMESERVERID:-100}
+      - SAVE_DIR=${SAVE_DIR:-.}
+      - WHITELISTED=${WHITELISTED:-0}
+    volumes:
+      - ${SAVE_DIR:-.}/banned.xml:/opt/miscreated/banned.xml
+      - ${SAVE_DIR:-.}/DatabaseBackups:/opt/miscreated/DatabaseBackups
+      - ${SAVE_DIR:-.}/hosting.cfg:/opt/miscreated/hosting.cfg
+      - ${SAVE_DIR:-.}/logbackups:/opt/miscreated/logbackups
+      - ${SAVE_DIR:-.}/logs:/opt/miscreated/logs
+      - ${SAVE_DIR:-.}/miscreated.db:/opt/miscreated/miscreated.db
+      - ${SAVE_DIR:-.}/reservations.xml:/opt/miscreated/reservations.xml
+      - ${SAVE_DIR:-.}/server.log:/opt/miscreated/server.log
+      - ${SAVE_DIR:-.}/whitelist.xml:/opt/miscreated/whitelist.xml
