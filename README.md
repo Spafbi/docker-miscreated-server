@@ -41,17 +41,17 @@ The script will guide you through creating a `.env` file and a `hosting.cfg` fil
 
 -   **Start the Server**: To start the Miscreated server in detached mode, run:
     ```bash
-    docker-compose up -d
+    docker compose up -d
     ```
 
 -   **Restart the Server**: To restart the server:
     ```bash
-    docker-compose restart
+    docker compose restart
     ```
 
 -   **Stop the Server**: To stop the server and remove the container:
     ```bash
-    docker-compose down
+    docker compose down
     ```
 
 ## Server Data and Mods
