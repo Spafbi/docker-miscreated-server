@@ -1,6 +1,6 @@
 services:
   miscreated:
-    image: ${IMAGE:-miscreated-server}:${IMAGE_TAG:-latest}
+    image: ${IMAGE:-miscreated}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
       - "${RCON_PORT:-64094}:${RCON_PORT:-64094}"
