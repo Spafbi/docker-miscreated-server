@@ -1,6 +1,7 @@
 .continue/*
 DatabaseBackups/*
 log*/*
+data/*
 
 .env
 banned.xml

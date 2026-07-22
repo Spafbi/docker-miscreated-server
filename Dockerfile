@@ -28,7 +28,7 @@ RUN mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 # Install dependencies
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
-    apt-get install -y --no-install-recommends curl sqlite3 lib32gcc-s1 && \
+    apt-get install -y --no-install-recommends curl dos2unix python3 sqlite3 lib32gcc-s1 && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and install steamcmd
@@ -37,24 +37,21 @@ RUN mkdir -p /opt/steamcmd && \
     tar -xzf /opt/steamcmd/steamcmd.tar.gz -C /opt/steamcmd && \
     rm /opt/steamcmd/steamcmd.tar.gz
 
-# Install the Miscreated server - retrying on failure
-RUN while ! /opt/steamcmd/steamcmd.sh +@sSteamCmdForcePlatformType windows +force_install_dir /opt/miscreated +login anonymous +app_update 302200 validate +quit; do \
-        echo "SteamCMD failed with exit code $?. Retrying in 5 seconds..."; \
-        sleep 5; \
-    done
-
 # Copy the entrypoint script
-COPY src/entrypoint.sh /opt/entrypoint.sh
-RUN chmod +x /opt/entrypoint.sh
+COPY src/entrypoint.sh /entrypoint.sh
+COPY src/misrcon.py /usr/local/bin/misrcon.py
+COPY src/rcon /usr/local/bin/rcon
+RUN chmod +x /entrypoint.sh /usr/local/bin/misrcon.py /usr/local/bin/rcon
 
-# Change ownership of all necessary files to the non-root user
-RUN chown -R ${USERNAME}:${USERNAME} /opt/miscreated ${HOME} /opt/steamcmd
+# Create /server, and change ownership of all necessary files and directories to the non-root user
+RUN mkdir /server && \
+    chown -R ${USERNAME}:${USERNAME} /server ${HOME} /opt/steamcmd
 
 # Set the working directory
-WORKDIR /opt/miscreated
+WORKDIR /server
 
 # Switch to the non-root user for the final image
 USER ${USERNAME}
 
 # Set the entrypoint
-ENTRYPOINT ["/opt/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

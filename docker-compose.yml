@@ -1,25 +1,62 @@
+x-mis-common: &mis-common
+  image: miscreated-wine:latest
+  stdin_open: true
+  tty: true
+  networks:
+    - mis-network
+  # network_mode: host
+  # read_only: true
+  tmpfs:
+    - /tmp:size=512M,noexec,nosuid
+    - /run:size=10M,noexec,nosuid
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  cap_add:
+    - NET_BIND_SERVICE
+  deploy:
+    resources:
+      limits:
+        memory: 6G
+        cpus: "2.5"
+        pids: 256
+      reservations:
+        memory: 2G
+        cpus: "0.5"
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "5"
+  healthcheck:
+    test: ["CMD", "python3", "/usr/local/bin/misrcon.py"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 120s
+  restart: unless-stopped
+
+networks:
+  mis-network:
+    driver: bridge
+
 services:
-  miscreated:
-    image: ${IMAGE:-miscreated}:${IMAGE_TAG:-latest}
-    restart: unless-stopped
+  mis1:
+    <<: *mis-common
+    container_name: miscreated_wine_test
     ports:
-      - "${RCON_PORT:-64094}:${RCON_PORT:-64094}"
-      - "${BASE_PORT:-64090}-${END_UDP_PORT:-64093}:${BASE_PORT:-64090}-${END_UDP_PORT:-64093}/udp"
+      - "64094:64094"
+      - "64090-64093:64090-64093/udp"
     environment:
-      - BASE_PORT=${BASE_PORT:-64090}
-      - GRANT_ALL_GUIDES=${GRANT_ALL_GUIDES:-0}
-      - MAP=${MAP:-islands}
-      - MAX_PLAYERS=${MAX_PLAYERS:-36}
-      - MIS_GAMESERVERID=${MIS_GAMESERVERID:-100}
-      - SAVE_DIR=${SAVE_DIR:-.}
-      - WHITELISTED=${WHITELISTED:-0}
+      - BASE_PORT=64090
+      - GRANT_ALL_GUIDES=1
+      - MAP=islands
+      - MAX_PLAYERS=50
+      - MIS_GAMESERVERID=100
+      - WHITELISTED=0
+      - BASE_VEHICLE_LIMITER=1
+      - STEAM_AUTH_TOKEN=${GSLT1}
+      - VARIABLE_RESTARTS=1
     volumes:
-      - ${SAVE_DIR:-.}/banned.xml:/opt/miscreated/banned.xml
-      - ${SAVE_DIR:-.}/DatabaseBackups:/opt/miscreated/DatabaseBackups
-      - ${SAVE_DIR:-.}/hosting.cfg:/opt/miscreated/hosting.cfg
-      - ${SAVE_DIR:-.}/logbackups:/opt/miscreated/logbackups
-      - ${SAVE_DIR:-.}/logs:/opt/miscreated/logs
-      - ${SAVE_DIR:-.}/miscreated.db:/opt/miscreated/miscreated.db
-      - ${SAVE_DIR:-.}/reservations.xml:/opt/miscreated/reservations.xml
-      - ${SAVE_DIR:-.}/server.log:/opt/miscreated/server.log
-      - ${SAVE_DIR:-.}/whitelist.xml:/opt/miscreated/whitelist.xml
+      - ./data:/server
