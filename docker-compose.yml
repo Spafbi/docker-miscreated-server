@@ -44,18 +44,18 @@ networks:
 services:
   mis1:
     <<: *mis-common
-    container_name: miscreated_wine_test
+    container_name: miscreated-server
     ports:
       - "64094:64094"
       - "64090-64093:64090-64093/udp"
     environment:
       - BASE_PORT=64090
-      - GRANT_ALL_GUIDES=1
+      - GRANT_ALL_GUIDES=0
       - MAP=islands
       - MAX_PLAYERS=36
       - MIS_GAMESERVERID=100
       - WHITELISTED=0
-      - BASE_VEHICLE_LIMITER=1
+      - BASE_VEHICLE_LIMITER=-1
       - STEAM_AUTH_TOKEN=${GSLT1}
       - VARIABLE_RESTARTS=1
     volumes:

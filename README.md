@@ -1,17 +1,17 @@
 
 ## Environment Variables
 
-The following environment variables can be set in the `.env` file to configure the server. This file is created by copying `.env-example`.
+The following environment variables are used by the server. Only `STEAM_AUTH_TOKEN` values (GSLT1, GSLT2, etc.) are loaded from the `.env` file. All other settings are hardcoded in the `docker-compose.yml` file and must be modified there directly.
 
 -   `BASE_PORT`: The base port for the server. The server will use a range of ports starting from this one. Defaults to `64090`.
--   `GRANT_ALL_GUIDES`: If set to `1`, this will grant all crafting guides to all players. Defaults to `0`.
+-   `GRANT_ALL_GUIDES`: If set to `1`, this will grant all crafting guides to all players. Defaults to `0` (disabled). 
 -   `MAP`: The map to load for the server. Defaults to `islands`.
 -   `MAX_PLAYERS`: The maximum number of players that can connect to the server. Must be a number between 1 and 100. Defaults to `36`.
 -   `MIS_GAMESERVERID`: A unique ID for your server. Defaults to `100`. This value should be retained unless using a database from a previous server installation which used a different ID.
 -   `WHITELISTED`: If set to `1`, only players on the whitelist will be able to connect. Defaults to `0`.
--   `BASE_VEHICLE_LIMITER`: Limits vehicles per PlotSign (excluding bicycles, tractors, quadbikes, and jetskis). Set to `-1` to disable. Defaults to `-1`.
+-   `BASE_VEHICLE_LIMITER`: Limits vehicles per PlotSign (excluding bicycles, tractors, quadbikes, and jetskis). Set to `-1` to disable. Defaults to `-1` (disabled).
 -   `STEAM_AUTH_TOKEN`: Optional Steam authentication token. Most users will not need this. Defaults to empty.
--   `VARIABLE_RESTARTS`: If set to `1`, enables random server restarts between 8 and 12 hours. Defaults to `1`.
+-   `VARIABLE_RESTARTS`: If set to `1`, enables random server restarts between 8 and 12 hours. Defaults to `1`. This prevents players from predicting restart times in order to log in at a specific moment each day just to refresh vehicles for hoarding, rather than using them through normal gameplay. Since players operate across different timezones and daily schedules, the sliding restart window also ensures no particular schedule is consistently disadvantaged by a fixed restart time.
 
 ## How to Use
 
@@ -23,7 +23,9 @@ Copy the `.env-example` file to `.env` and modify it as needed:
 cp .env-example .env
 ```
 
-Edit the `.env` file with your preferred settings, and optionally edit the `hosting.cfg.example` file before copying it to `hosting.cfg`.
+Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`), and optionally edit the `hosting.cfg.example` file before copying it to `hosting.cfg`.
+
+**Important**: All server configuration settings (like port, max players, map, etc.) are hardcoded in `docker-compose.yml`. To change these, edit the `environment:` section directly in that file.
 
 ### 2. Manage the Server
 
@@ -115,10 +117,10 @@ docker exec -it miscreated python3 misrcon.py --server-root /server -c "status"
 ```
 
 ### Updating Service Name and Container Name
-The default service name is `mis1` and the container name is `miscreated_wine_test`. You can change these to something more meaningful for your setup:
+The default service name is `mis1` and the container name is `miscreated-server`. You can change these to something more meaningful for your setup:
 
 1. **Service Name**: Change `mis1` in the `docker-compose.yml` file to a descriptive name like `mis-created-survival` or `zombieland`
-2. **Container Name**: Update `container_name: miscreated_wine_test` to match your service name or something else meaningful
+2. **Container Name**: Update `container_name: miscreated-server` to match your service name or something else meaningful
 
 Both names should be consistent with the examples used throughout the documentation, especially for RCON commands.
 
@@ -136,7 +138,7 @@ To run multiple Miscreated servers, you can copy the `mis1` section in `docker-c
       - BASE_PORT=64190
       - GRANT_ALL_GUIDES=1
       - MAP=islands
-      - MAX_PLAYERS=50
+      - MAX_PLAYERS=36
       - MIS_GAMESERVERID=100
       - WHITELISTED=0
       - BASE_VEHICLE_LIMITER=1
@@ -158,8 +160,8 @@ When copying the service section, ensure you:
 
 ## Files
 
--   **`.env-example`**: An example file for the environment variables used by `docker-compose.yml`. You should copy this to `.env` and modify it.
--   **`docker-compose.yml`**: The Docker Compose file to define and run the Miscreated server container. It uses environment variables from the `.env` file to configure the server.
+-   **`.env-example`**: An example file for the Steam Guard tokens used by `docker-compose.yml`. You should copy this to `.env` and modify it to set your GSLT values. Note that this file does not contain server configuration variables - those are hardcoded in `docker-compose.yml`.
+-   **`docker-compose.yml`**: The Docker Compose file to define and run the Miscreated server container. It uses environment variables from the `.env` file (only GSLT tokens) to configure the server, with all other settings hardcoded in the `environment:` section.
 -   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses a base image with Wine, installs the Miscreated server using `steamcmd`, and sets up the container environment.
 -   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
 -   **`src/misrcon.py`**: Python script used by the healthcheck to monitor the server via RCON.
