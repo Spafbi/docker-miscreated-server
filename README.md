@@ -119,7 +119,7 @@ docker exec -it miscreated python3 misrcon.py --server-root /server -c "status"
 ### Updating Service Name and Container Name
 The default service name is `mis1` and the container name is `miscreated-server`. You can change these to something more meaningful for your setup:
 
-1. **Service Name**: Change `mis1` in the `docker-compose.yml` file to a descriptive name like `mis-created-survival` or `zombieland`
+1. **Service Name**: Change `mis1` in the `docker-compose.yml` file to a descriptive name like `miscreated-survival` or `mutantland`
 2. **Container Name**: Update `container_name: miscreated-server` to match your service name or something else meaningful
 
 Both names should be consistent with the examples used throughout the documentation, especially for RCON commands.
