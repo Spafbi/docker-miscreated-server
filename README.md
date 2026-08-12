@@ -127,3 +127,45 @@ For advanced usage or custom configurations, you can use `misrcon.py` directly:
 # Run misrcon.py directly with custom parameters
 docker exec -it miscreated python3 misrcon.py --server-root /server -c "status"
 ```
+
+### Updating Service Name and Container Name
+The default service name is `mis1` and the container name is `miscreated_wine_test`. You can change these to something more meaningful for your setup:
+
+1. **Service Name**: Change `mis1` in the `docker-compose.yml` file to a descriptive name like `mis-created-survival` or `zombieland`
+2. **Container Name**: Update `container_name: miscreated_wine_test` to match your service name or something else meaningful
+
+Both names should be consistent with the examples used throughout the documentation, especially for RCON commands.
+
+### Running Multiple Servers
+To run multiple Miscreated servers, you can copy the `mis1` section in `docker-compose.yml` for each server you want to run:
+
+```yaml
+  mis2:
+    <<: *mis-common
+    container_name: my-other-miscreated-server
+    ports:
+      - "64194:64194"
+      - "64190-64193:64190-64193/udp"
+    environment:
+      - BASE_PORT=64190
+      - GRANT_ALL_GUIDES=1
+      - MAP=islands
+      - MAX_PLAYERS=50
+      - MIS_GAMESERVERID=100
+      - WHITELISTED=0
+      - BASE_VEHICLE_LIMITER=1
+      - STEAM_AUTH_TOKEN=${GSLT2}
+      - VARIABLE_RESTARTS=1
+    volumes:
+      - ./data2:/server
+```
+
+When copying the service section, ensure you:
+1. Change the **service name** (`mis1` → `mis2`)
+2. Update the **container_name**
+3. Change **all port mappings** (both external and internal) to avoid conflicts:
+   - TCP port: `"64094:64094"` → `"64194:64194"`
+   - UDP range: `"64090-64093:64090-64093/udp"` → `"64190-64193:64190-64193/udp"`
+4. Update **BASE_PORT** to match your new port range
+5. Change the **volume mount** from `./data:/server` to `./data2:/server`
+6. Use a different **GSLT token** if needed (e.g., `${GSLT2}` instead of `${GSLT1}`)
