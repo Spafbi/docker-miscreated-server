@@ -52,7 +52,7 @@ services:
       - BASE_PORT=64090
       - GRANT_ALL_GUIDES=1
       - MAP=islands
-      - MAX_PLAYERS=50
+      - MAX_PLAYERS=36
       - MIS_GAMESERVERID=100
       - WHITELISTED=0
       - BASE_VEHICLE_LIMITER=1
