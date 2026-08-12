@@ -56,6 +56,26 @@ Edit the `.env` file with your preferred settings, and optionally edit the `host
     docker compose down
     ```
 
+-   **Force Rebuild the Image**: If you need to rebuild the Docker image after changing the `Dockerfile`, the base image, or any build-time assets, use one of these commands:
+    ```bash
+    docker compose up -d --build
+    ```
+    or
+    ```bash
+    docker compose build --no-cache
+    docker compose up -d
+    ```
+
+Why rebuild? A rebuild might be warranted in the following scenarios:
+-   You've modified the `Dockerfile` and want to apply your changes.
+-   The base image (e.g., Wine or Ubuntu version) has been updated upstream, and you want to pull the latest version.
+-   You've updated files that are copied into the image at build time (like `entrypoint.sh`).
+-   You're troubleshooting unexpected behavior that might be caused by stale build cache layers.
+-   You've updated `docker-compose.yml` with new build arguments and want to ensure they take effect.
+
+Option 1 (`--build`): This option rebuilds only the layers that have changed, using Docker's build cache. It's faster and suitable for most daily updates.
+Option 2 (`--no-cache`): This option ignores all cached layers and rebuilds every layer from scratch. While slower, it guarantees a completely fresh image and is useful when troubleshooting or after major base-image updates.
+
 ## Docker Compose Configuration
 
 The `docker-compose.yml` file configures the server with:
@@ -89,3 +109,21 @@ When `GRANT_ALL_GUIDES` is enabled, the server will unlock all crafting guides f
 
 ### Variable Restarts
 When `VARIABLE_RESTARTS` is enabled, servers will restart at random intervals between 8 and 12 hours to prevent coordinated griefing.
+
+### RCON (Remote Console)
+The Miscreated server includes built-in RCON functionality accessible via a wrapper script. You can execute RCON commands using `docker exec -it <container_name> rcon <command>`.
+
+For example:
+```bash
+# Check server status
+docker exec -it miscreated rcon status
+
+# Send a message to all players
+docker exec -it miscreated rcon sv_say Welcome to the server!
+```
+
+For advanced usage or custom configurations, you can use `misrcon.py` directly:
+```bash
+# Run misrcon.py directly with custom parameters
+docker exec -it miscreated python3 misrcon.py --server-root /server -c "status"
+```
