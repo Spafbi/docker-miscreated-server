@@ -1,7 +1,13 @@
 -- // NOTE: Lines starting with a dash are commented out. Remove the dash and
 -- // space before the CVAR(variable) to customize that CVAR. CVARS which are
 -- // commented out will use default settings.
-
+--
+-- // IMPORTANT: After setting a value for any CVAR, remove any comments that 
+-- // follow the value (the text after the equals sign). For example:
+-- // Instead of: http_password= mypassword -- this is a comment
+-- // Use: http_password=myPassword
+-- // This ensures compatibility with server configuration parsing.
+--
 -- // Changes to hosting.cfg do not take effect until the server is restarted
 
 -- // All values seen here are the default values for the CVARs, so if you want
