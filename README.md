@@ -1,17 +1,3 @@
-# Miscreated Docker Wine Server
-
-This project provides a way to run a Miscreated dedicated server using Docker and Wine. It includes a `Dockerfile` to build the server image and a `docker-compose.yml` file to easily manage the server container. The server is configured through a `.env` file and a `hosting.cfg` file.
-
-## Files
-
--   **`.env-example`**: An example file for the environment variables used by `docker-compose.yml`. You should copy this to `.env` and modify it.
--   **`docker-compose.yml`**: The Docker Compose file to define and run the Miscreated server container. It uses environment variables from the `.env` file to configure the server.
--   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses a base image with Wine, installs the Miscreated server using `steamcmd`, and sets up the container environment.
--   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
--   **`src/misrcon.py`**: Python script used by the healthcheck to monitor the server via RCON.
--   **`src/rcon`**: Binary used by `misrcon.py` for RCON communication.
--   **`hosting.cfg.example`**: An example configuration file for the Miscreated server. This file is copied to `hosting.cfg` during the setup process and can be modified to customize server settings.
--   **`.gitignore`**: Lists files and directories that are excluded from version control, including server data.
 
 ## Environment Variables
 
@@ -169,3 +155,14 @@ When copying the service section, ensure you:
 4. Update **BASE_PORT** to match your new port range
 5. Change the **volume mount** from `./data:/server` to `./data2:/server`
 6. Use a different **GSLT token** if needed (e.g., `${GSLT2}` instead of `${GSLT1}`)
+
+## Files
+
+-   **`.env-example`**: An example file for the environment variables used by `docker-compose.yml`. You should copy this to `.env` and modify it.
+-   **`docker-compose.yml`**: The Docker Compose file to define and run the Miscreated server container. It uses environment variables from the `.env` file to configure the server.
+-   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses a base image with Wine, installs the Miscreated server using `steamcmd`, and sets up the container environment.
+-   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
+-   **`src/misrcon.py`**: Python script used by the healthcheck to monitor the server via RCON.
+-   **`src/rcon`**: Binary used by `misrcon.py` for RCON communication.
+-   **`hosting.cfg.example`**: An example configuration file for the Miscreated server. This file is copied to `hosting.cfg` during the setup process and can be modified to customize server settings.
+-   **`.gitignore`**: Lists files and directories that are excluded from version control, including server data.
