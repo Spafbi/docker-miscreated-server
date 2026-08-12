@@ -1,0 +1,13 @@
+#!/bin/bash
+# RCON wrapper script for Miscreated server
+# Usage: rcon <command>
+# Example: rcon sv_say This is a test message
+
+if [ $# -eq 0 ]; then
+    echo "Usage: rcon <command> [args...]"
+    echo "Example: rcon sv_say Hello world"
+    exit 1
+fi
+
+# Execute misrcon.py with the command as -c argument
+exec python3 /usr/local/bin/misrcon.py --server-root /server -c "$*"
