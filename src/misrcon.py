@@ -73,7 +73,8 @@ class _RCONTransport(xmlrpc.client.Transport):
     Uses per-socket timeouts instead of the deprecated global
     ``socket.setdefaulttimeout()``.
 
-    Overrides ``_parse_url`` to inject the timeout into the HTTPConnection.
+    Overrides ``make_connection`` so that every connection is created with
+    the configured socket timeout.
     All request/send logic is delegated to the parent ``Transport`` class.
     """
 
@@ -86,38 +87,29 @@ class _RCONTransport(xmlrpc.client.Transport):
         """Update the socket timeout used for subsequent requests."""
         self._timeout = timeout
 
-    def _parse_url(self, host: str) -> tuple:
+    def make_connection(self, host: str) -> "http.client.HTTPConnection":
         """
-        Return an HTTP connection for *host* with the configured timeout.
+        Return an HTTP connection for *host* with the configured socket timeout.
 
-        Returns a 3-tuple ``(connection, server_name, request_path)``.
+        ``host`` may be ``host``, ``host:port``, or ``scheme://host:port``
+        depending on the version of ``xmlrpc.client`` in use.  This override
+        guarantees the socket timeout is applied to every request while
+        preserving the parent class' keep-alive and host-parsing behaviour.
         """
-        import urllib.parse
+        # Reuse an existing keep-alive connection when possible
+        if getattr(self, "_connection", None) and host == self._connection[0]:
+            return self._connection[1]
 
-        # Split host into (servername, request_path)
-        # Example host: "127.0.0.1:64094/rpc2"
-        schema = "http://"
-        if host.startswith(("http://", "https://")):
-            schema = ""
-        
-        full_url = schema + host
-        parsed = urllib.parse.urlparse(full_url)
-        
-        hostname = parsed.hostname or "127.0.0.1"
-        port = parsed.port
-        request_path = parsed.path or "/RPC2"
-        
-        # Build the server name with port
-        if port is not None:
-            server_name = f"{hostname}:{port}"
+        if callable(getattr(self, "get_host_info", None)):
+            # Legacy xmlrpc.client transport API
+            target, self._extra_headers, _x509 = self.get_host_info(host)
         else:
-            server_name = hostname
-            port = 80
+            # Modern xmlrpc.client: host is already "hostname" or "hostname:port"
+            target = host
 
-        # Create connection with our timeout
-        conn = http.client.HTTPConnection(hostname, port=port, timeout=self._timeout)
-        
-        return (conn, server_name, request_path)
+        conn = http.client.HTTPConnection(target, timeout=self._timeout)
+        self._connection = (host, conn)
+        return conn
 
 
 # -----------------------------------------------------------------------
@@ -365,7 +357,12 @@ class MiscreatedRCON:
 
         # Check if this is an sv_say command and needs splitting
         split_commands = self._split_say_command(command)
-        
+
+        # An sv_say with no message produces no commands; fail cleanly
+        # instead of sending a bare "sv_say" to the server.
+        if not split_commands:
+            return RCONResponse(success=False, error="'sv_say' given with no message")
+
         # If we have multiple commands (split), send them sequentially
         if len(split_commands) > 1:
             results = []
@@ -393,18 +390,25 @@ class MiscreatedRCON:
         # Fast path: try without re-authenticating
         resp = self._execute(cmd, params)
 
-        # If we got an "unauthorized"-style error, re-auth and retry
-        if resp.success:
-            # Check for known error responses that indicate unauthorised access
-            if not self._is_error_response(resp.result):
-                return resp
+        # Done if the fast path succeeded with a genuine result.
+        if resp.success and not self._is_error_response(resp.result):
+            return resp
 
-        # Re-authenticate and retry once
+        # The command failed, or reported an unauthorised-style error:
+        # re-authenticate and retry once.
         if self.authenticate():
             resp = self._execute(cmd, params)
+            if resp.success and not self._is_error_response(resp.result):
+                return resp
 
-        if not resp.success:
-            resp.error = f"Command '{command}' failed: {resp.error}"
+        # Re-authentication failed, or the retry still failed.  Do NOT
+        # report an "unauthorised" fast-path response as a success.
+        if resp.success:
+            return RCONResponse(
+                success=False,
+                error=f"Command '{command}' failed: {resp.result}",
+            )
+        resp.error = f"Command '{command}' failed: {resp.error}"
         return resp
 
     def send_many(self, commands: List[str]) -> Dict[str, RCONResponse]:
@@ -560,24 +564,21 @@ def main(argv: Optional[List[str]] = None) -> int:
         format="%(levelname)s: %(message)s",
     )
 
-    # Calculate RCON port from game port when non-default
-    if args.game_port != 64090:
-        rcon_port = args.game_port + 4
-    elif args.rcon_port is not None:
-        # User explicitly passed --rcon-port
+    # Determine the RCON port.  Precedence: explicit --rcon-port, then
+    # --game-port + 4, then BASE_PORT + 4, then the default 64094.
+    if args.rcon_port is not None:
         rcon_port = args.rcon_port
+    elif args.game_port != 64090:
+        rcon_port = args.game_port + 4
     else:
-        # Check BASE_PORT environment variable and add 4 (as requested in task)
         base_port_str = os.environ.get("BASE_PORT")
         if base_port_str is not None:
             try:
-                base_port = int(base_port_str)
-                rcon_port = base_port + 4
+                rcon_port = int(base_port_str) + 4
             except ValueError:
                 logger.warning("BASE_PORT environment variable is not a valid integer, using default 64094")
                 rcon_port = 64094
         else:
-            # Use default RCON port
             rcon_port = 64094
 
     # Validate password / server-root
@@ -603,7 +604,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         logger.error("Initialization error: %s", exc)
         return 1
 
-    resp = rcon.send(args.command)
+    # sv_say with an empty message fails server-side with a confusing
+    # error, so validate the argument up-front.
+    normalized_cmd = args.command.strip()
+    if normalized_cmd.lower() == "sv_say" or normalized_cmd.lower().startswith("sv_say "):
+        if not normalized_cmd[6:].strip():
+            logger.error('sv_say requires a non-empty message, e.g. -c "sv_say Hello"')
+            return 1
+
+    # Warn early if an explicit password was provided but is empty.
+    if args.password is not None and not args.password.strip():
+        logger.warning("The provided RCON password is empty; authentication will likely fail.")
+
+    try:
+        resp = rcon.send(args.command)
+    except Exception as exc:
+        logger.error("RCON request failed: %s", exc)
+        rcon.close()
+        return 1
 
     if resp.success:
         output = resp.result if resp.result else "<empty result - ok>"
@@ -613,7 +631,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         
         # Check if colors should be enabled
         if args.no_color:
-            use_color = Falses
+            use_color = False
         elif args.color == "always":
             use_color = True
         elif args.color == "never":

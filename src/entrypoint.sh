@@ -10,6 +10,13 @@ STEAM_AUTH_TOKEN=${STEAM_AUTH_TOKEN:-}
 VARIABLE_RESTARTS=${VARIABLE_RESTARTS:-1}
 WHITELISTED=${WHITELISTED:-0}
 
+# RCON (and therefore the container healthcheck) requires the server's
+# hosting.cfg to be present.  It is provisioned manually from the host.
+if [ ! -f /server/hosting.cfg ]; then
+    echo "WARNING: /server/hosting.cfg not found. RCON and the healthcheck require it."
+    echo "WARNING: Copy hosting.cfg.example to data/hosting.cfg on the host (container path /server/hosting.cfg)."
+fi
+
 # Helper function to check database validity and required tables
 _db_check_passed() {
     local required_tables=("$@")
@@ -74,9 +81,9 @@ GRANT_ALL_GUIDES_LOWER=$(echo "$GRANT_ALL_GUIDES" | tr '[:upper:]' '[:lower:]')
 if [ "$GRANT_ALL_GUIDES_LOWER" = "1" ] || [ "$GRANT_ALL_GUIDES_LOWER" = "y" ] || [ "$GRANT_ALL_GUIDES_LOWER" = "yes" ] || [ "$GRANT_ALL_GUIDES_LOWER" = "true" ]; then
     echo "GRANT_ALL_GUIDES is enabled."
     
-    # Check database validity and required tables (ServerAccountData only)
+    # Check database validity and required tables (ServerAccountData and Characters)
     DB_CHECKS_PASSED=1
-    _db_check_passed "ServerAccountData"
+    _db_check_passed "ServerAccountData" "Characters"
     DB_CHECKS_PASSED=$?
     
     if [ "$DB_CHECKS_PASSED" -eq 0 ]; then
@@ -134,7 +141,8 @@ EOF
 fi
 
 # Replace sv_maxuptime with a random value between 8 and 12 if VARIABLE_RESTARTS is enabled
-if [ "$VARIABLE_RESTARTS" = "1" ]; then
+VARIABLE_RESTARTS_LOWER=$(echo "$VARIABLE_RESTARTS" | tr '[:upper:]' '[:lower:]')
+if [ "$VARIABLE_RESTARTS_LOWER" = "1" ] || [ "$VARIABLE_RESTARTS_LOWER" = "y" ] || [ "$VARIABLE_RESTARTS_LOWER" = "yes" ] || [ "$VARIABLE_RESTARTS_LOWER" = "true" ]; then
     RANDOM_MAXUPTIME=$(awk "BEGIN{srand(); printf \"%.1f\", 8 + (rand() * 4)}")
     ARGS="$ARGS +sv_maxuptime $RANDOM_MAXUPTIME"
     echo "Variable restarts enabled: sv_maxuptime set to $RANDOM_MAXUPTIME"
@@ -156,19 +164,41 @@ ARGS="$ARGS +http_startserver"
 # Remove the appmanifest file to force SteamCMD to re-validate the installation on each run
 rm -f /server/steamapps/appmanifest_302200.acf
 
-# Install the Miscreated server - retrying on failure
-while ! /opt/steamcmd/steamcmd.sh +@sSteamCmdForcePlatformType windows +force_install_dir /server +login anonymous +app_update 302200 validate +quit; do \
-    echo "SteamCMD failed with exit code $?. Retrying in 5 seconds..."; \
-    sleep 5; \
+# Install the Miscreated server - retrying on failure (bounded to avoid an infinite loop)
+STEAMCMD_MAX_ATTEMPTS=${STEAMCMD_MAX_ATTEMPTS:-10}
+STEAMCMD_ATTEMPT=0
+while :; do
+    STEAMCMD_ATTEMPT=$((STEAMCMD_ATTEMPT + 1))
+    if /opt/steamcmd/steamcmd.sh +@sSteamCmdForcePlatformType windows +force_install_dir /server +login anonymous +app_update 302200 validate +quit; then
+        break
+    fi
+    echo "SteamCMD failed (attempt $STEAMCMD_ATTEMPT of $STEAMCMD_MAX_ATTEMPTS)."
+    if [ "$STEAMCMD_ATTEMPT" -ge "$STEAMCMD_MAX_ATTEMPTS" ]; then
+        echo "ERROR: SteamCMD failed after $STEAMCMD_MAX_ATTEMPTS attempts. Giving up."
+        exit 1
+    fi
+    echo "Retrying in 5 seconds..."
+    sleep 5
 done
 
-# Append supplemental config to system.cfg if it exists
+# Append supplemental config to system.cfg if it exists (idempotent:
+# the block is only added once, marked with BEGIN/END markers).
+SUPP_BEGIN_MARKER="# BEGIN system.cfg.supplemental (auto-appended)"
+SUPP_END_MARKER="# END system.cfg.supplemental (auto-appended)"
 if [ -f /server/system.cfg.supplemental ]; then
-    dos2unix /server/system.cfg
-    echo "" >> /server/system.cfg
-    cat /server/system.cfg.supplemental >> /server/system.cfg
-    echo "" >> /server/system.cfg
-    unix2dos /server/system.cfg
+    if [ -f /server/system.cfg ] && grep -qF "$SUPP_END_MARKER" /server/system.cfg; then
+        echo "Supplemental config already present in system.cfg. Skipping append."
+    else
+        # Normalize to LF for editing, append the block, restore CRLF afterwards
+        sed -i 's/\r$//' /server/system.cfg
+        echo "" >> /server/system.cfg
+        echo "$SUPP_BEGIN_MARKER" >> /server/system.cfg
+        cat /server/system.cfg.supplemental >> /server/system.cfg
+        echo "$SUPP_END_MARKER" >> /server/system.cfg
+        echo "" >> /server/system.cfg
+        sed -i 's/$/\r/' /server/system.cfg
+        echo "Supplemental config appended to system.cfg."
+    fi
 fi
 
 # Start the Miscreated server with Wine

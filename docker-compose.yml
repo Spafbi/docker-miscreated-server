@@ -1,11 +1,10 @@
 x-mis-common: &mis-common
   image: miscreated-wine:latest
+  build: .
   stdin_open: true
   tty: true
   networks:
     - mis-network
-  # network_mode: host
-  # read_only: true
   tmpfs:
     - /tmp:size=512M,noexec,nosuid
     - /run:size=10M,noexec,nosuid
@@ -15,26 +14,25 @@ x-mis-common: &mis-common
     - ALL
   cap_add:
     - NET_BIND_SERVICE
-  deploy:
-    resources:
-      limits:
-        memory: 6G
-        cpus: "2.5"
-        pids: 256
-      reservations:
-        memory: 2G
-        cpus: "0.5"
+  # Top-level resource limits (compose v2); deploy.resources is only honored in swarm mode
+  mem_limit: 6G
+  mem_reservation: 2G
+  cpus: 2.5
+  pids_limit: 1024
   logging:
     driver: json-file
     options:
       max-size: "50m"
       max-file: "5"
+  # RCON needs the RCON port (game port + 4) open and the password from
+  # /server/hosting.cfg (see the Files section of README.md).
   healthcheck:
-    test: ["CMD", "python3", "/usr/local/bin/misrcon.py"]
+    test: ["CMD", "python3", "/usr/local/bin/misrcon.py", "--server-root", "/server", "-c", "status"]
     interval: 30s
-    timeout: 10s
+    timeout: 40s
     retries: 3
-    start_period: 120s
+    # First boot downloads the game via SteamCMD and can take 10+ minutes
+    start_period: 600s
   restart: unless-stopped
 
 networks:

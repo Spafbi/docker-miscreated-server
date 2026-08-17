@@ -22,7 +22,8 @@
 -- functioning server. All other settings are optional and have default values.
 -- ============================================
 -- The password used to connect via rcon. Do not set this password to the same value as sv_password.
-http_password= 
+-- IMPORTANT: change this to a strong, unique password before starting the server.
+http_password=ChangeThisRCONPassword
 -- The server name displayed in the server browser window. Encapsulate the name in quote.
 sv_servername=""
 

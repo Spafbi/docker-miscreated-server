@@ -25,6 +25,8 @@ cp .env-example .env
 
 Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`), and optionally edit the `hosting.cfg.example` file before copying it to `hosting.cfg`.
 
+**Important**: Before starting the server for the first time, copy `hosting.cfg.example` to `data/hosting.cfg` on the host (this maps to `/server/hosting.cfg` inside the container). RCON commands and the container healthcheck read the `http_password` value from this file, so without it both will fail. This copy is done manually by you — the entrypoint does not do it automatically.
+
 **Important**: All server configuration settings (like port, max players, map, etc.) are hardcoded in `docker-compose.yml`. To change these, edit the `environment:` section directly in that file.
 
 ### 2. Manage the Server
@@ -71,7 +73,7 @@ The `docker-compose.yml` file configures the server with:
 - **Resource Limits**: 
   - Memory: 6G (should be increased to at least 8G for servers with more than 50 max players)
   - CPU: 2.5 cores
-  - PID limit: 256
+  - PID limit: 1024
 
 - **Security Features**:
   - Runs as non-root user
@@ -166,5 +168,5 @@ When copying the service section, ensure you:
 -   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
 -   **`src/misrcon.py`**: Python script used by the healthcheck to monitor the server via RCON.
 -   **`src/rcon`**: Binary used by `misrcon.py` for RCON communication.
--   **`hosting.cfg.example`**: An example configuration file for the Miscreated server. This file is copied to `hosting.cfg` during the setup process and can be modified to customize server settings.
+-   **`hosting.cfg.example`**: An example configuration file for the Miscreated server. You must copy this file to `data/hosting.cfg` on the host (container path `/server/hosting.cfg`) yourself during the setup process, and it can be modified to customize server settings. RCON and the container healthcheck require the resulting `hosting.cfg` to be present.
 -   **`.gitignore`**: Lists files and directories that are excluded from version control, including server data.

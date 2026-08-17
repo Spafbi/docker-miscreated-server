@@ -10,3 +10,7 @@ miscreated.db
 reservations.xml
 server.log
 whitelist.xml
+
+# Python build artifacts
+__pycache__/
+*.pyc

@@ -1,7 +1,10 @@
 # Dockerfile-nonroot for Miscreated Server with Wine
 
 # Base image with Wine, Xvfb, and noVNC
-FROM scottyhardy/docker-wine:latest
+# Pinned to the stable 11.0 line for reproducible builds (currently the same
+# image as :latest). For fully reproducible builds use a dated tag, e.g.
+# scottyhardy/docker-wine:stable-11.0-20260816
+FROM scottyhardy/docker-wine:stable-11.0
 
 # ARGs for user/group IDs to be passed at build time
 ARG USERNAME=steam
@@ -28,7 +31,7 @@ RUN mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 # Install dependencies
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
-    apt-get install -y --no-install-recommends curl dos2unix python3 sqlite3 lib32gcc-s1 && \
+    apt-get install -y --no-install-recommends curl python3 sqlite3 lib32gcc-s1 && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and install steamcmd
