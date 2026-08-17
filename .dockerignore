@@ -1,0 +1,15 @@
+# Version control
+.git
+.gitignore
+
+# Local environment & server data (never needed in the build context)
+.env
+.env-example
+data/
+data2/
+
+# Documentation / build artifacts
+README.md
+*.md
+__pycache__/
+*.pyc
