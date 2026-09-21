@@ -53,5 +53,9 @@ WORKDIR /server
 # Switch to the non-root user for the final image
 USER ${USERNAME}
 
+# Healthcheck: query the server via RCON (misrcon.py defaults to the "status" command)
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=300s \
+    CMD python3 /usr/local/bin/misrcon.py || exit 1
+
 # Set the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

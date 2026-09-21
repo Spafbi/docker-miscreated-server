@@ -1,0 +1,39 @@
+# Only `Dockerfile` and `src/` are needed to build the image.
+# Exclude VCS, local secrets, runtime server data, IDE files, and docs from
+# the build context to keep builds fast and prevent leaking secrets/data.
+
+# Version control
+.git
+.gitignore
+
+# Local secrets
+.env
+
+# Runtime server data & backups (also gitignored)
+data/
+DatabaseBackups/
+logbackups/
+banned.xml
+hosting.cfg
+miscreated.db
+reservations.xml
+whitelist.xml
+logs/
+server.log
+*.log
+
+# Python build artifacts
+__pycache__/
+*.pyc
+
+# IDE / tooling
+.continue/
+.vscode/
+.idea/
+
+# Docs & templates not needed in the image
+*.md
+LICENSE
+hosting.cfg.example
+.env-example
+docker-compose.yml

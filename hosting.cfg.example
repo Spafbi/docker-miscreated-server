@@ -22,15 +22,17 @@
 -- functioning server. All other settings are optional and have default values.
 -- ============================================
 -- The password used to connect via rcon. Do not set this password to the same value as sv_password.
-http_password= 
+-- REPLACE ME with a strong, unique RCON password before starting the server (do not leave it empty).
+http_password=CHANGE_ME
 -- The server name displayed in the server browser window. Encapsulate the name in quote.
 sv_servername=""
 
 -- ============================================
 -- Core Server Settings
--- http_password and sv_servername, to set the rcon password and server name,
--- respectively, are the only required settings to have a uniquely named and
--- functioning server. All other settings are optional and have default values.
+-- The above http_password and sv_servername CVARS, to set the rcon password
+-- and server name, respectively, are the only required settings to have a
+-- uniquely named and functioning server. All other settings are optional and
+-- have default values.
 -- ============================================
 -- sv_allow_prone=0 - Set to 1 to enable prone. Enabling prone also allows for a number of prone-related exploits, so it is recommended to leave this disabled.
 -- sv_maxuptime=25.3588 - Maximum server uptime until restart in hours - 12 suggested. While the default is higher than 24, the server will not actually stay up for more than 24 hours without restarting, so setting this to a value higher than 24 will not have any effect.
