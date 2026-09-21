@@ -3,6 +3,11 @@ x-mis-common: &mis-common
   build:
     context: .
     dockerfile: Dockerfile
+    # Non-root user/group IDs baked into the image at build time.
+    # To use your current user's IDs: MIS_UID=$(id -u) MIS_GID=$(id -g) docker compose build
+    args:
+      UID: ${MIS_UID:-1000}
+      GID: ${MIS_GID:-1000}
   stdin_open: true
   tty: true
   networks:
@@ -61,3 +66,4 @@ services:
       - VARIABLE_RESTARTS=1
     volumes:
       - ./data:/server
+      # - ./data/wine:/home/steam/.wine
