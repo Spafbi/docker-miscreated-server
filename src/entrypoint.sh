@@ -179,9 +179,28 @@ if [ -f /server/system.cfg.supplemental ]; then
     echo "" >> /server/system.cfg
     cat /server/system.cfg.supplemental >> /server/system.cfg
     echo "" >> /server/system.cfg
+    # unix2dos is provided by the dos2unix package (Ubuntu 26.04 has no
+    # separate unix2dos package)
     unix2dos /server/system.cfg
 fi
 
-# Start the Miscreated server with Wine
+# Initialize the Wine prefix on first boot (WINEARCH=win64 comes from the image ENV)
+if [ ! -d "$WINEPREFIX" ]; then
+    echo "Initializing WINEPREFIX at $WINEPREFIX ..."
+    wineboot --init
+fi
+
+# Headless virtual display: start Xvfb unless the host already provides one
+export DISPLAY="${DISPLAY:-:99}"
+# The X server runs as a non-root user and refuses to create the X11 socket
+# directory itself; /tmp is world-writable (sticky) so we can create it here
+mkdir -p /tmp/.X11-unix 2>/dev/null && chmod 1777 /tmp/.X11-unix 2>/dev/null || true
+if ! xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+    echo "Starting Xvfb on display $DISPLAY"
+    Xvfb "$DISPLAY" -screen 0 1024x768x24 -ac -nolisten tcp >/dev/null 2>&1 &
+    sleep 1   # allow the X server to come up
+fi
+
+# Start the Miscreated server with Wine (exec keeps the server as PID 1)
 echo "Starting Miscreated Server with command: MiscreatedServer.exe $ARGS"
-xvfb-run --auto-servernum sh -c "wine /server/Bin64_dedicated/MiscreatedServer.exe $ARGS"
+exec wine /server/Bin64_dedicated/MiscreatedServer.exe $ARGS

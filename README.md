@@ -176,7 +176,7 @@ When copying the service section, ensure you:
 
 -   **`.env-example`**: An example file for the Steam Guard tokens used by `docker-compose.yml`. You should copy this to `.env` and modify it to set your GSLT values. Note that this file does not contain server configuration variables - those are hardcoded in `docker-compose.yml`.
 -   **`docker-compose.yml`**: The Docker Compose file to define and run the Miscreated server container. It uses environment variables from the `.env` file (only GSLT tokens) to configure the server, with all other settings hardcoded in the `environment:` section.
--   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses a base image with Wine, installs the Miscreated server using `steamcmd`, and sets up the container environment.
+-   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses an Ubuntu 26.04 (`ubuntu:resolute`) base image with Wine and Xvfb installed natively for headless operation (no RDP/VNC/noVNC), sets up the container environment, and downloads `steamcmd`. The Miscreated server itself is installed via `steamcmd` on first run.
 -   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
 -   **`src/misrcon.py`**: Python script used by the healthcheck to monitor the server via RCON.
 -   **`src/rcon`**: Shell wrapper script that calls `misrcon.py` to run an RCON command against the local server (e.g. `rcon status`).

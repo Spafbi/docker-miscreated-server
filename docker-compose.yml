@@ -61,3 +61,4 @@ services:
       - VARIABLE_RESTARTS=1
     volumes:
       - ./data:/server
+      # - ./data/wine:/home/steam/.wine
