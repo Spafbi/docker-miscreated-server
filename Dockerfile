@@ -5,11 +5,11 @@
 FROM ubuntu:resolute
 
 # ARGs for user/group IDs to be passed at build time
-ARG USERNAME=steam
 ARG UID=1000
 ARG GID=1000
 
 # ENV variables
+ENV USERNAME=steam
 ENV HOME=/home/${USERNAME}
 ENV WINEPREFIX=${HOME}/.wine
 ENV WINEARCH=win64
@@ -21,19 +21,14 @@ ENV LC_ALL=en_US.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 
 # All build steps from here are run as root
-# Create user and group first, so HOME directory is available
-RUN groupadd -g ${GID} -o ${USERNAME} && \
-    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${USERNAME}
-
 # Set XDG_RUNTIME_DIR for the user
 ENV XDG_RUNTIME_DIR=${HOME}/runtime
 RUN mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 
 # Install headless Wine, the Xvfb virtual display, and server tooling
-# (replaces the essential parts of scottyhardy/docker-wine; i386 arch
-# enables the 32-bit Wine loader). Note: on Ubuntu 26.04 the dos2unix
-# package ships both the dos2unix and unix2dos binaries (there is no
-# separate unix2dos package).
+# (i386 arch enables the 32-bit Wine loader). Note: on Ubuntu 26.04 the
+# dos2unix package ships both the dos2unix and unix2dos binaries (there
+# is no separate unix2dos package).
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -68,6 +63,18 @@ COPY src/entrypoint.sh /entrypoint.sh
 COPY src/misrcon.py /usr/local/bin/misrcon.py
 COPY src/rcon /usr/local/bin/rcon
 RUN chmod +x /entrypoint.sh /usr/local/bin/misrcon.py /usr/local/bin/rcon
+
+# Create the non-root user and group. Done after the heavy install steps
+# (Wine, steamcmd) so that changing UID/GID only rebuilds these final layers
+# instead of invalidating those cached installs. The -o flags allow
+# non-unique IDs if your environment requires them.
+RUN set -e; \
+    case "${UID}" in '' | *[!0-9]*) echo "ERROR: UID must be a non-negative integer (got '${UID}')" >&2; exit 1;; esac; \
+    case "${GID}" in '' | *[!0-9]*) echo "ERROR: GID must be a non-negative integer (got '${GID}')" >&2; exit 1;; esac; \
+    if [ "${UID}" -lt 100 ]; then echo "ERROR: UID must be >= 100 (got ${UID})" >&2; exit 1; fi; \
+    if [ "${GID}" -lt 100 ]; then echo "ERROR: GID must be >= 100 (got ${GID})" >&2; exit 1; fi; \
+    groupadd -g ${GID} -o ${USERNAME} && \
+    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${USERNAME}
 
 # Create /server, and change ownership of all necessary files and directories to the non-root user
 RUN mkdir /server && \
