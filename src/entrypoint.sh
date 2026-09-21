@@ -1,4 +1,7 @@
 #!/bin/bash
+# Fail fast on unset variables; do not abort on expected non-zero exits (e.g. the steamcmd retry loop)
+set -u -o pipefail
+
 BASE_PORT=${BASE_PORT:-64090}
 BASE_VEHICLE_LIMITER=${BASE_VEHICLE_LIMITER:--1}
 DB_PATH="/server/miscreated.db"
@@ -156,10 +159,18 @@ ARGS="$ARGS +http_startserver"
 # Remove the appmanifest file to force SteamCMD to re-validate the installation on each run
 rm -f /server/steamapps/appmanifest_302200.acf
 
-# Install the Miscreated server - retrying on failure
-while ! /opt/steamcmd/steamcmd.sh +@sSteamCmdForcePlatformType windows +force_install_dir /server +login anonymous +app_update 302200 validate +quit; do \
-    echo "SteamCMD failed with exit code $?. Retrying in 5 seconds..."; \
-    sleep 5; \
+# Install the Miscreated server - retrying on failure (bounded retries with backoff)
+MAX_STEAMCMD_ATTEMPTS=10
+STEAMCMD_ATTEMPT=0
+while ! /opt/steamcmd/steamcmd.sh +@sSteamCmdForcePlatformType windows +force_install_dir /server +login anonymous +app_update 302200 validate +quit; do
+    STEAMCMD_ATTEMPT=$((STEAMCMD_ATTEMPT + 1))
+    if [ "$STEAMCMD_ATTEMPT" -ge "$MAX_STEAMCMD_ATTEMPTS" ]; then
+        echo "ERROR: SteamCMD failed after $MAX_STEAMCMD_ATTEMPTS attempts. Aborting."
+        exit 1
+    fi
+    BACKOFF=$((STEAMCMD_ATTEMPT * 5))
+    echo "SteamCMD failed (attempt $STEAMCMD_ATTEMPT/$MAX_STEAMCMD_ATTEMPTS). Retrying in ${BACKOFF}s..."
+    sleep "$BACKOFF"
 done
 
 # Append supplemental config to system.cfg if it exists

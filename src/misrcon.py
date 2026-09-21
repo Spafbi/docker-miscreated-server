@@ -613,7 +613,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         
         # Check if colors should be enabled
         if args.no_color:
-            use_color = Falses
+            use_color = False
         elif args.color == "always":
             use_color = True
         elif args.color == "never":

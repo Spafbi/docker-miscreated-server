@@ -1,5 +1,8 @@
 x-mis-common: &mis-common
   image: miscreated-wine:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
   stdin_open: true
   tty: true
   networks:
@@ -13,8 +16,6 @@ x-mis-common: &mis-common
     - no-new-privileges:true
   cap_drop:
     - ALL
-  cap_add:
-    - NET_BIND_SERVICE
   deploy:
     resources:
       limits:
@@ -34,7 +35,7 @@ x-mis-common: &mis-common
     interval: 30s
     timeout: 10s
     retries: 3
-    start_period: 120s
+    start_period: 300s
   restart: unless-stopped
 
 networks:

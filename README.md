@@ -29,7 +29,12 @@ Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`
 
 ### 2. Manage the Server
 
--   **Start the Server**: To start the Miscreated server in detached mode, run:
+-   **Build the Image** (first time, or after changing the `Dockerfile` or any file in `src/`): Build the server image locally before starting:
+    ```bash
+    docker compose build
+    ```
+
+-   **Start the Server**: To start the Miscreated server in detached mode (uses the locally built image), run:
     ```bash
     docker compose up -d
     ```
@@ -44,25 +49,34 @@ Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`
     docker compose down
     ```
 
--   **Force Rebuild the Image**: If you need to rebuild the Docker image after changing the `Dockerfile`, the base image, or any build-time assets, use one of these commands:
+-   **Force Rebuild the Image**: If you need to rebuild the Docker image after changing the `Dockerfile`, any file in `src/`, or the base image, pick the command that fits your situation:
     ```bash
+    # Most common: rebuild only the changed layers (uses the build cache), then (re)start
     docker compose up -d --build
     ```
-    or
     ```bash
+    # Upstream base image updated: pull the newest base image first, then rebuild
+    docker compose build --pull
+    docker compose up -d
+    ```
+    ```bash
+    # Nuclear option: ignore every cached layer and rebuild from scratch
     docker compose build --no-cache
     docker compose up -d
     ```
 
 Why rebuild? A rebuild might be warranted in the following scenarios:
--   You've modified the `Dockerfile` and want to apply your changes.
--   The base image (e.g., Wine or Ubuntu version) has been updated upstream, and you want to pull the latest version.
--   You've updated files that are copied into the image at build time (like `entrypoint.sh`).
--   You're troubleshooting unexpected behavior that might be caused by stale build cache layers.
+-   You've modified the `Dockerfile` or any file under `src/` (e.g. `entrypoint.sh`, `misrcon.py`, or `rcon`) and want to apply those changes.
+-   The base image (`scottyhardy/docker-wine:latest`) has been updated upstream and you want to pull the latest version (use `--pull`).
+-   You're troubleshooting unexpected behavior that might be caused by stale build-cache layers (use `--no-cache`).
 -   You've updated `docker-compose.yml` with new build arguments and want to ensure they take effect.
 
-Option 1 (`--build`): This option rebuilds only the layers that have changed, using Docker's build cache. It's faster and suitable for most daily updates.
-Option 2 (`--no-cache`): This option ignores all cached layers and rebuilds every layer from scratch. While slower, it guarantees a completely fresh image and is useful when troubleshooting or after major base-image updates.
+Which option to use?
+-   **`--build` (Option 1):** Rebuilds only the layers that have changed, using Docker's build cache. Fastest — ideal for day-to-day updates to the `Dockerfile` or `src/`.
+-   **`--pull` (Option 2):** Pulls the newest base image before rebuilding. Use this to pick up upstream base-image updates.
+-   **`--no-cache` (Option 3):** Ignores all cached layers and rebuilds every layer from scratch. Slowest, but guarantees a completely fresh image — best for troubleshooting or after major changes.
+
+> Note: Downloading/validating the SteamCMD **game** is **not** part of the image build. It happens automatically at container start (the entrypoint removes the appmanifest and re-validates the install), so you do **not** need to rebuild the image to update or re-verify the game installation.
 
 ## Docker Compose Configuration
 
@@ -76,7 +90,7 @@ The `docker-compose.yml` file configures the server with:
 - **Security Features**:
   - Runs as non-root user
   - No new privileges (`no-new-privileges:true`)
-  - Capabilities dropped (`ALL`) and added (`NET_BIND_SERVICE`)
+  - All capabilities dropped (`cap_drop: ALL`); none are re-added (not required — the server binds high-numbered ports as a non-root user)
   - Network isolation via `mis-network` bridge network
 
 - **Healthcheck**: Uses Python script (`misrcon.py`) to monitor server status
@@ -104,16 +118,16 @@ The Miscreated server includes built-in RCON functionality accessible via a wrap
 For example:
 ```bash
 # Check server status
-docker exec -it miscreated rcon status
+docker exec -it miscreated-server rcon status
 
 # Send a message to all players
-docker exec -it miscreated rcon sv_say Welcome to the server!
+docker exec -it miscreated-server rcon sv_say Welcome to the server!
 ```
 
 For advanced usage or custom configurations, you can use `misrcon.py` directly:
 ```bash
 # Run misrcon.py directly with custom parameters
-docker exec -it miscreated python3 misrcon.py --server-root /server -c "status"
+docker exec -it miscreated-server python3 /usr/local/bin/misrcon.py --server-root /server -c "status"
 ```
 
 ### Updating Service Name and Container Name
@@ -165,6 +179,6 @@ When copying the service section, ensure you:
 -   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses a base image with Wine, installs the Miscreated server using `steamcmd`, and sets up the container environment.
 -   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
 -   **`src/misrcon.py`**: Python script used by the healthcheck to monitor the server via RCON.
--   **`src/rcon`**: Binary used by `misrcon.py` for RCON communication.
+-   **`src/rcon`**: Shell wrapper script that calls `misrcon.py` to run an RCON command against the local server (e.g. `rcon status`).
 -   **`hosting.cfg.example`**: An example configuration file for the Miscreated server. This file is copied to `hosting.cfg` during the setup process and can be modified to customize server settings.
 -   **`.gitignore`**: Lists files and directories that are excluded from version control, including server data.
