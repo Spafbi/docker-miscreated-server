@@ -1,4 +1,37 @@
 
+## Quick Start
+
+1. Clone the repository into your home directory:
+
+   ```bash
+   cd ~
+   git clone https://github.com/Spafbi/docker-miscreated-server.git
+   cd docker-miscreated-server
+   ```
+
+2. Create the data directory (mounted as `/server` inside the container) and copy the example server config into it:
+
+   ```bash
+   mkdir data
+   cp hosting.cfg.example data/hosting.cfg
+   ```
+
+3. Edit `data/hosting.cfg` to set at least the `http_password` (RCON password) and `sv_servername` CVARs:
+
+   ```bash
+   nano data/hosting.cfg
+   ```
+
+4. Build the image (using your current user's UID/GID so `./data` is owned by you) and start the server:
+
+   ```bash
+   MIS_UID=$(id -u) MIS_GID=$(id -g) docker compose build && docker compose up -d
+   ```
+
+   On first run the server downloads and validates its game files via `steamcmd`, which can take a while. Track progress with `docker logs -f miscreated-server`.
+
+> Note: GSLT tokens are something almost nobody has — if you don't know what one is, you can safely ignore this. If you do have one, you already know how to use it: copy `.env-example` to `.env`, set `GSLT1`, and start the server.
+
 ## Environment Variables
 
 The following environment variables are used by the server. Only `STEAM_AUTH_TOKEN` values (GSLT1, GSLT2, etc.) are loaded from the `.env` file. All other settings are hardcoded in the `docker-compose.yml` file and must be modified there directly.
@@ -23,7 +56,7 @@ Copy the `.env-example` file to `.env` and modify it as needed:
 cp .env-example .env
 ```
 
-Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`), and optionally edit the `hosting.cfg.example` file before copying it to `hosting.cfg`.
+Edit the `.env` file with your preferred GSLT tokens (`GSLT1` and `GSLT2`), and optionally edit the `hosting.cfg.example` file before copying it to `hosting.cfg`.
 
 **Important**: All server configuration settings (like port, max players, map, etc.) are hardcoded in `docker-compose.yml`. To change these, edit the `environment:` section directly in that file.
 
@@ -32,6 +65,10 @@ Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`
 -   **Build the Image** (first time, or after changing the `Dockerfile` or any file in `src/`): Build the server image locally before starting:
     ```bash
     docker compose build
+    ```
+    The image runs as a non-root user (`steam`) whose UID/GID are baked in at build time (default `1000`/`1000`). To use your current user's IDs — so that files written under `./data` are owned by you — pass them when building:
+    ```bash
+    MIS_UID=$(id -u) MIS_GID=$(id -g) docker compose build
     ```
 
 -   **Start the Server**: To start the Miscreated server in detached mode (uses the locally built image), run:
@@ -52,22 +89,22 @@ Edit the `.env` file with your preferred Steam Guard tokens (`GSLT1` and `GSLT2`
 -   **Force Rebuild the Image**: If you need to rebuild the Docker image after changing the `Dockerfile`, any file in `src/`, or the base image, pick the command that fits your situation:
     ```bash
     # Most common: rebuild only the changed layers (uses the build cache), then (re)start
-    docker compose up -d --build
+    MIS_UID=$(id -u) MIS_GID=$(id -g) docker compose up -d --build
     ```
     ```bash
     # Upstream base image updated: pull the newest base image first, then rebuild
-    docker compose build --pull
+    MIS_UID=$(id -u) MIS_GID=$(id -g) docker compose build --pull
     docker compose up -d
     ```
     ```bash
     # Nuclear option: ignore every cached layer and rebuild from scratch
-    docker compose build --no-cache
+    MIS_UID=$(id -u) MIS_GID=$(id -g) docker compose build --no-cache
     docker compose up -d
     ```
 
 Why rebuild? A rebuild might be warranted in the following scenarios:
 -   You've modified the `Dockerfile` or any file under `src/` (e.g. `entrypoint.sh`, `misrcon.py`, or `rcon`) and want to apply those changes.
--   The base image (`scottyhardy/docker-wine:latest`) has been updated upstream and you want to pull the latest version (use `--pull`).
+-   The base image (`ubuntu:resolute`) has been updated upstream and you want to pull the latest version (use `--pull`).
 -   You're troubleshooting unexpected behavior that might be caused by stale build-cache layers (use `--no-cache`).
 -   You've updated `docker-compose.yml` with new build arguments and want to ensure they take effect.
 
@@ -174,7 +211,7 @@ When copying the service section, ensure you:
 
 ## Files
 
--   **`.env-example`**: An example file for the Steam Guard tokens used by `docker-compose.yml`. You should copy this to `.env` and modify it to set your GSLT values. Note that this file does not contain server configuration variables - those are hardcoded in `docker-compose.yml`.
+-   **`.env-example`**: An example file for the GSLT tokens used by `docker-compose.yml`. You should copy this to `.env` and modify it to set your GSLT values. Note that this file does not contain server configuration variables - those are hardcoded in `docker-compose.yml`.
 -   **`docker-compose.yml`**: The Docker Compose file to define and run the Miscreated server container. It uses environment variables from the `.env` file (only GSLT tokens) to configure the server, with all other settings hardcoded in the `environment:` section.
 -   **`Dockerfile`**: The Dockerfile to build the Miscreated server image. It uses an Ubuntu 26.04 (`ubuntu:resolute`) base image with Wine and Xvfb installed natively for headless operation (no RDP/VNC/noVNC), sets up the container environment, and downloads `steamcmd`. The Miscreated server itself is installed via `steamcmd` on first run.
 -   **`src/entrypoint.sh`**: The entrypoint script for the Docker container. It constructs the server's command-line arguments from environment variables and starts the Miscreated server.
